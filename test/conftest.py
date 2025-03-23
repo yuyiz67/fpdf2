@@ -21,6 +21,7 @@ import pytest
 
 from fpdf.util import get_process_rss_as_mib, print_mem_usage
 from fpdf.template import Template
+import difflib
 
 QPDF_AVAILABLE = bool(shutil.which("qpdf"))
 if not QPDF_AVAILABLE:
@@ -63,6 +64,7 @@ def assert_pdf_equal(
     ignore_id_changes=False,
     ignore_original_obj_ids=False,
     ignore_xref_offsets=False,
+    verbose=False,
 ):
     """
     This compare the output of a `FPDF` instance (or `Template` instance),
@@ -134,6 +136,19 @@ def assert_pdf_equal(
             # that has cubic complexity from this comment by Tim Peters: https://bugs.python.org/issue6931#msg223459
             actual_lines = subst_streams_with_hashes(actual_lines)
             expected_lines = subst_streams_with_hashes(expected_lines)
+
+            if verbose:
+                # Generate a diff report similar to git diff
+                diff = difflib.unified_diff(
+                    [line.decode('latin-1') for line in expected_lines],
+                    [line.decode('latin-1') for line in actual_lines],
+                    fromfile='expected',
+                    tofile='actual',
+                    lineterm='',
+                )
+                diff_str = '\n'.join(diff)
+
+                assert False, f"PDF content does not match, differences are as follows:\n{diff_str}"
         assert actual_lines == expected_lines
         if linearize:
             _run_cmd("qpdf", "--check-linearization", str(actual_pdf_path))
