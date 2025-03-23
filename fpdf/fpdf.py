@@ -2260,6 +2260,8 @@ class FPDF(GraphicsStateMixin, TextRegionMixin):
         sl = f"/F{font.i} {font_size_pt:.2f} Tf"
         if wrap_in_text_object:
             sl = f"BT {sl} ET"
+            self.current_font = font
+            self.font_size_pt = font_size_pt
         self._resource_catalog.add(PDFResourceType.FONT, font.i, self.page)
         self.current_font_is_set_on_page = True
         return sl
@@ -3686,9 +3688,11 @@ class FPDF(GraphicsStateMixin, TextRegionMixin):
                             self.k,
                         )
                     if fragment_text:
-                        yield Fragment(
+                        frag = Fragment(
                             fragment_text, self._get_current_graphics_state(), self.k
                         )
+                        frag.font = self.fonts[frag.font_family] # remove style
+                        yield frag
                 return
 
             yield Fragment(text, self._get_current_graphics_state(), self.k)
